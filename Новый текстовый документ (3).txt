@@ -1,0 +1,372 @@
+using System;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
+
+namespace ConsoleApp3
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            const string MenuCreateDirection = "1";
+            const string MenuSellTickets = "2";
+            const string MenuFormTheTrain = "3";
+            const string MenuSendTheTrain = "4";
+            const string MenuExit = "5";
+
+            string userInput;
+            bool isOpen = true;
+
+            TicketOffice ticketOffice = new TicketOffice();
+
+            while (isOpen)
+            {
+                ticketOffice.ShowAdditionalInformation();
+                ticketOffice.ShowMainInformation();
+
+                Console.Write("\n");
+                Console.WriteLine("-----Меню оператора кассы!-----");
+                Console.WriteLine($"{MenuCreateDirection} - Создать направление поезда");
+                Console.WriteLine($"{MenuSellTickets} - Продать билеты");
+                Console.WriteLine($"{MenuFormTheTrain} - Сформировать поезд");
+                Console.WriteLine($"{MenuSendTheTrain} - Отправить поезд");
+                Console.WriteLine($"{MenuExit} - Выход из меню");
+                Console.Write("\nВведите команду: ");
+                userInput = Console.ReadLine();
+
+                switch (userInput)
+                {
+                    case MenuCreateDirection:
+                        ticketOffice.CreateDirection();
+                        break;
+
+                    case MenuSellTickets:
+                        ticketOffice.SellTickets();
+                        break;
+
+                    case MenuFormTheTrain:
+                        ticketOffice.FormTheTrain();
+                        break;
+
+                    case MenuSendTheTrain:
+                        ticketOffice.SendTrain();
+                        break;
+
+                    case MenuExit:
+                        isOpen = false;
+                        break;
+
+                    default:
+                        Console.Write("\nНеизвестная команда!");
+                        break;
+                }
+
+                Console.ReadKey();
+                Console.Clear();
+            }
+        }
+    }
+
+    class Train
+    {
+        private List<Carriage> _carriages = new List<Carriage>();
+        private int _passengersInTrain;
+
+        private Carriage _carriage = new Carriage();
+        private int _capacity;
+
+        public void GetPassengers(int passengers)
+        {
+            _passengersInTrain += passengers;
+        }
+
+        public void CreateCarriages()
+        {
+            int passengerCount = _passengersInTrain;
+            _capacity = _carriage.GiveCapacityCount();
+
+            if (_passengersInTrain > 0)
+            {
+                for (int i = 0; i < passengerCount; i += _capacity)
+                {
+                    _carriages.Add(new Carriage());
+                }
+
+                Console.WriteLine($"К поезду присоеденено {_carriages.Count} вагонов");
+            }
+        }
+
+        public void FillCarriages()
+        {
+            int passengersToMove = _passengersInTrain;
+
+            for (int i = 0; i < _carriages.Count; i++)
+            {
+                if (passengersToMove > _capacity)
+                {
+                    passengersToMove -= _capacity;
+                    _carriages[i].GetPassengers(_capacity);
+                }
+                else
+                {
+                    _carriages[i].GetPassengers(passengersToMove);
+                }
+            }
+        }
+
+        public void ShowInfo()
+        {
+            Console.WriteLine($"В поезде {_carriages.Count} вагонов на {_carriages.Count * _carriages.Capacity} мест,\n" +
+                $"занято {_passengersInTrain} мест");
+        }
+    }
+
+    class Carriage
+    {
+        private int _capacity = 8;
+        private int _freeSeats;
+
+        public Carriage()
+        {
+            _freeSeats = _capacity;
+        }
+
+        public void GetPassengers(int passengers)
+        {
+            _freeSeats -= passengers;
+        }
+
+        public int GiveCapacityCount()
+        {
+            return _capacity;
+        }
+    }
+
+    class Direction
+    {
+        public string Destination { get; private set; } = null;
+        private string _cityOfStantion = "Москва";
+
+        public bool SetDestination(out string userInput)
+        {
+            userInput = Console.ReadLine();
+
+            if (userInput.ToLower() == _cityOfStantion.ToLower())
+            {
+                Console.WriteLine("Поезд уже в этом городе");
+                return false;
+            }
+            else
+            {
+                Destination = userInput;
+                return true;
+            }
+        }
+
+        public void ShowInfo()
+        {
+            if (Destination != null)
+            {
+                Console.WriteLine($"Направление поезда: г.{_cityOfStantion} - г.{Destination}");
+            }
+        }
+    }
+
+    class Cashier
+    {
+        public int TicketPrice { get; private set; }
+        private int _money;
+
+        public Cashier()
+        {
+            _money = 0;
+        }
+
+        public void SetTicketPrice(string direction)
+        {
+            int PricePerKillometer = 16;
+            TicketPrice = PricePerKillometer * direction.Length;
+        }
+
+        public void GetMoney(int money)
+        {
+            _money += money;
+        }
+
+        public void ShowMoney()
+        {
+            Console.WriteLine($"Денег в кассе: {_money}р.");
+        }
+
+        public void ShowTicketPrice()
+        {
+            Console.WriteLine($"Цена билета: {TicketPrice}р.");
+        }
+    }
+
+    class Passengers
+    {
+        public int _count { get; private set; }
+        private Random random = new Random();
+
+        public Passengers()
+        {
+            _count = random.Next(15, 58);
+        }
+
+        public void ShowInfo()
+        {
+            Console.WriteLine($"{_count} человек хочет купить билеты на поезд!");
+        }
+
+        public bool GivePassengers(out int passengers)
+        {
+            if (_count > 0)
+            {
+                passengers = _count;
+                _count = 0;
+                return true;
+            }
+            else
+            {
+                passengers = 0;
+                return false;
+            }
+        }
+    }
+
+    class TicketOffice
+    {
+        private bool _destinationIsCreated = false;
+        private bool _ticketsIsSelled = false;
+        private bool _trainIsFormirated = false;
+
+        private Train _train = new Train();
+        private Direction _direction = new Direction();
+        private Passengers _passengers;
+        private Cashier _cashier = new Cashier();
+
+        public void CreateDirection()
+        {
+            string userInput;
+
+            if (_destinationIsCreated)
+            {
+                Console.WriteLine("Направление уже создано!");
+            }
+            else
+            {
+                Console.WriteLine("Введите город куда направится поезд: ");
+
+                if (_direction.SetDestination(out userInput))
+                {
+                    _destinationIsCreated = true;
+                    _passengers = new Passengers();
+                    _cashier.SetTicketPrice(_direction.Destination);
+                }
+            }
+        }
+
+        public void SellTickets()
+        {
+            int moneySum;
+            int passengersToMove;
+
+            if (_destinationIsCreated == false)
+            {
+                Console.WriteLine("Направление не создано!");
+                return;
+            }
+
+            if (_passengers.GivePassengers(out passengersToMove))
+            {
+                moneySum = _cashier.TicketPrice * passengersToMove;
+                _cashier.GetMoney(moneySum);
+                _train.GetPassengers(passengersToMove);
+                Console.WriteLine($"Продано билетов по цене {_cashier.TicketPrice}р. {passengersToMove} пассажирам на сумму {moneySum}р.");
+                _ticketsIsSelled = true;
+            }
+            else
+            {
+                Console.WriteLine("Нет пассажиров на поезд!");
+            }
+        }
+
+        public void FormTheTrain()
+        {
+            if (_destinationIsCreated)
+            {
+                if (_ticketsIsSelled)
+                {
+                    _train.CreateCarriages();
+                    _train.FillCarriages();
+                    _trainIsFormirated = true;
+                }
+                else
+                {
+                    Console.WriteLine("Продайте билеты!");
+                }
+
+            }
+            else
+            {
+                Console.WriteLine("Направление не создано!");
+            }
+        }
+
+        public void SendTrain()
+        {
+            if (_destinationIsCreated)
+            {
+                if (_trainIsFormirated)
+                {
+                    _train = new Train();
+                    _direction = new Direction();
+
+                    Console.WriteLine("Поезд отправлен в путь!");
+                    _destinationIsCreated = false;
+                    _trainIsFormirated = false;
+                }
+                else
+                {
+                    Console.WriteLine("Поезд не готов для отправки! Сформируйте вагоны!");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Направление не создано!");
+            }
+        }
+
+        public void ShowMainInformation()
+        {
+            if (_destinationIsCreated)
+            {
+                _direction.ShowInfo();
+                _passengers.ShowInfo();
+
+                if (_trainIsFormirated)
+                    _train.ShowInfo();
+            }
+            else
+            {
+                Console.WriteLine("Создайте направление для получения информации!");
+            }
+        }
+
+        public void ShowAdditionalInformation()
+        {
+            Console.SetCursorPosition(70, 0);
+            _cashier.ShowMoney();
+
+            if (_destinationIsCreated)
+            {
+                Console.SetCursorPosition(70, 1);
+                _cashier.ShowTicketPrice();
+            }
+
+            Console.SetCursorPosition(0, 0);
+        }
+    }
+}
+ 
